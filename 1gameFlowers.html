@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Дышим с цветком</title>
+<style>
+/* ── СБРОС И БАЗА ────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:clamp(13px,4.2vmin,17px)}
+:root{
+  --bg:#e8f4f8;--text:#4a3c5c;
+  --btn:#f4a261;--btn-s:#d4823a;
+  --green:#7ecb7e;--green-s:#5aab5a;
+  --btn-h:clamp(52px,13vmin,68px);
+  --icon:clamp(48px,11vmin,64px);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;justify-content:center;align-items:center}
+.container{
+  width:100%;max-width:min(560px,100vw);
+  min-height:100dvh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:clamp(10px,3vmin,22px) clamp(10px,4vw,22px);
+  position:relative;overflow-y:auto;overflow-x:hidden
+}
+
+/* ── ЭКРАНЫ ──────────────────────────────────────────── */
+.screen{display:none;flex-direction:column;align-items:center;text-align:center;width:100%;animation:fadeIn .45s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+h1{font-size:clamp(1.2em,5.5vmin,1.6em);margin-bottom:.5em;color:#4a3c5c}
+p{font-size:clamp(.93em,3.5vmin,1.1em);line-height:1.5;margin-bottom:.75em;max-width:400px}
+
+/* ── КНОПКИ ──────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:.82em 2em;font-size:clamp(.98em,3.8vmin,1.16em);font-weight:700;color:#fff;background:var(--btn);border:none;border-radius:1.2em;cursor:pointer;box-shadow:0 5px 0 var(--btn-s);transition:transform .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent;min-height:var(--btn-h);min-width:var(--btn-h);user-select:none;touch-action:manipulation}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--btn-s)}
+.btn:disabled{opacity:.45;cursor:default;pointer-events:none}
+.btn-sm{padding:.68em 1.5em;font-size:clamp(.88em,3.3vmin,1.04em);min-height:var(--btn-h)}
+.btn-green{background:var(--green);box-shadow:0 5px 0 var(--green-s)}
+.btn-green:active{box-shadow:0 2px 0 var(--green-s)}
+.btn-muted{background:rgba(155,126,216,.45);box-shadow:0 5px 0 rgba(155,126,216,.7)}
+.btn-muted:active{box-shadow:0 2px 0 rgba(155,126,216,.7)}
+.btn-next{background:#7ec8e3;box-shadow:0 5px 0 #4a9abf}
+.btn-next:active{box-shadow:0 2px 0 #4a9abf}
+.btn-row{display:flex;gap:.7em;flex-wrap:wrap;justify-content:center;margin-top:.7em}
+
+/* ── ИКОНКИ-КНОПКИ ───────────────────────────────────── */
+.sound-toggle{position:absolute;top:clamp(8px,2vmin,14px);left:clamp(8px,2vmin,14px);z-index:10}
+.top-btns{position:absolute;top:clamp(8px,2vmin,14px);right:clamp(8px,2vmin,14px);display:flex;gap:8px;z-index:10}
+.icon-btn{width:var(--icon);height:var(--icon);border-radius:50%;border:2px solid rgba(155,126,216,.6);background:rgba(255,255,255,.85);font-size:1.3em;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.icon-btn:hover{background:rgba(155,126,216,.8);color:#fff}
+
+/* ── МОДАЛКИ ─────────────────────────────────────────── */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;justify-content:center;align-items:center;padding:1.2em}
+.modal.active{display:flex}
+.modal-body{background:#fff;border-radius:1.4em;padding:1.4em;max-width:460px;width:100%;max-height:80dvh;overflow-y:auto;position:relative;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.modal-body h2{font-size:1.2em;color:#9b7ed8;margin-bottom:.6em}
+.modal-body p{font-size:.93em;line-height:1.6;margin-bottom:.5em}
+.modal-close{position:absolute;top:.65em;right:.85em;font-size:1.7em;cursor:pointer;color:#aaa;background:none;border:none}
+.metrics-table{width:100%;border-collapse:collapse;margin-top:.5em}
+.metrics-table td{padding:.45em .6em;border-bottom:1px solid #eee;font-size:.9em}
+.metrics-table td:first-child{font-weight:600;color:#9b7ed8}
+
+/* ── СТАРТ — персонаж + пузырь ───────────────────────── */
+.char-zone{display:flex;align-items:center;gap:clamp(10px,2.5vmin,16px);max-width:min(400px,95%);margin:.4em 0 .9em;text-align:left}
+.char-svg{flex-shrink:0;width:min(130px,32vmin);height:min(100px,25vmin)}
+.char-svg svg{width:100%;height:100%;overflow:visible}
+@keyframes charFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.char-svg{animation:charFloat 3.2s ease-in-out infinite}
+.speech-bubble{background:rgba(255,255,255,.9);border-radius:.9em .9em .9em .2em;padding:.7em .85em;font-size:clamp(.82em,3vmin,.96em);line-height:1.48;box-shadow:0 3px 14px rgba(155,126,216,.17);position:relative}
+.speech-bubble::before{content:'';position:absolute;left:-9px;top:14px;border:9px solid transparent;border-right-color:rgba(255,255,255,.9);border-left:0}
+.speech-name{font-weight:700;color:#9b7ed8;display:block;margin-bottom:.28em;font-size:1.04em}
+
+/* ── КАК ИГРАТЬ ──────────────────────────────────────── */
+.how-box{background:rgba(255,255,255,.72);border-radius:1em;padding:.65em .9em;margin:.4em 0 .9em;max-width:min(360px,95%);width:100%;box-shadow:0 3px 12px rgba(155,126,216,.12)}
+.how-row{display:flex;align-items:flex-start;gap:.55em;padding:.28em 0;font-size:clamp(.86em,3.1vmin,.98em);color:#4a3c5c;line-height:1.4}
+.how-row .hi{font-size:1.2em;flex-shrink:0;width:1.6em;text-align:center}
+
+/* ── ВЫБОР УРОВНЯ ────────────────────────────────────── */
+.level-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(8px,2vmin,13px);width:100%;max-width:min(440px,97%);margin-bottom:.9em}
+.level-card{border:3px solid rgba(155,126,216,.25);border-radius:1.2em;background:rgba(255,255,255,.7);padding:clamp(9px,2.4vmin,15px) clamp(7px,1.8vmin,12px);cursor:pointer;transition:all .22s;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column;align-items:center;gap:.28em;touch-action:manipulation}
+.level-card:hover{background:rgba(255,255,255,.9);border-color:rgba(155,126,216,.5)}
+.level-card.selected{border-color:var(--lvColor,#9b7ed8);background:#fff;box-shadow:0 4px 18px rgba(155,126,216,.22)}
+.level-card .lc-emoji{font-size:clamp(1.6em,5vmin,2.3em);line-height:1}
+.level-card .lc-name{font-weight:700;font-size:clamp(.88em,3.2vmin,1.06em);color:#4a3c5c}
+.level-card .lc-age{font-size:clamp(.68em,2.4vmin,.8em);color:rgba(74,60,92,.5)}
+.level-card .lc-pattern{font-size:clamp(.66em,2.1vmin,.78em);color:rgba(74,60,92,.55);line-height:1.4;margin-top:.12em}
+
+/* ── ОСОЗНАННОСТЬ ────────────────────────────────────── */
+.awareness-flower{width:min(160px,40vmin);height:min(160px,40vmin);margin:.5em auto .75em}
+.answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(9px,2.2vmin,13px);margin-top:.65em;width:100%;max-width:min(270px,68vmin)}
+.answer-btn{padding:.85em;font-size:clamp(1.25em,5vmin,1.55em);font-weight:700;border:3px solid rgba(155,126,216,.5);border-radius:.95em;background:rgba(155,126,216,.08);color:#4a3c5c;cursor:pointer;transition:all .2s;min-height:var(--btn-h);-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.answer-btn:hover{background:rgba(155,126,216,.2)}
+.answer-btn.correct{background:#7ecb7e;border-color:#5aab5a;color:#fff;transform:scale(1.07)}
+.answer-btn.wrong{animation:shake .4s ease;background:#fde8ea;border-color:#e4a0a8}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+.hint-text{font-size:.93em;color:rgba(74,60,92,.48);margin-top:.55em;min-height:1.4em}
+
+/* ── ДЫХАНИЕ ─────────────────────────────────────────── */
+.breath-label{font-size:clamp(1.12em,4.5vmin,1.38em);font-weight:700;min-height:1.6em;display:flex;align-items:center;justify-content:center;margin-bottom:.1em;transition:color .4s}
+.breath-count{font-size:clamp(2.7em,10vmin,3.7em);font-weight:900;color:#6ec6e6;min-height:1.15em;line-height:1;display:flex;align-items:center;justify-content:center;margin-bottom:.28em}
+.breath-count.pop{animation:countPop .18s ease}
+@keyframes countPop{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+.flower-area{width:min(210px,46vmin);height:min(210px,46vmin);margin:.2em auto;position:relative}
+.dolphin-mini{position:absolute;right:min(-62px,-13.5vmin);bottom:min(20px,4.5vmin);width:min(78px,17vmin);height:min(58px,13vmin)}
+.dolphin-mini svg{width:100%;height:100%}
+.progress-dots{display:flex;gap:clamp(7px,1.8vmin,12px);margin-top:.75em;flex-wrap:wrap;justify-content:center}
+.dot{width:clamp(13px,3.3vmin,19px);height:clamp(13px,3.3vmin,19px);border-radius:50%;background:rgba(155,126,216,.2);transition:background .4s,transform .3s}
+.dot.done{transform:scale(1.15)}
+.paused-msg{font-size:.93em;font-weight:600;margin-top:.35em;opacity:0;transition:opacity .3s;min-height:1.35em}
+.paused-msg.visible{opacity:1}
+.pause-btn{margin-top:.55em;background:rgba(155,126,216,.12);border:2px solid rgba(155,126,216,.6);color:#4a3c5c;border-radius:.95em;padding:.62em 1.45em;font-size:.93em;font-weight:600;cursor:pointer;min-height:var(--btn-h);transition:background .2s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.pause-btn:hover{background:rgba(155,126,216,.25)}
+.skip-btn{margin-top:.35em;background:none;border:none;color:rgba(74,60,92,.3);font-size:.83em;cursor:pointer;text-decoration:underline;padding:.45em;min-height:44px}
+.skip-btn:hover{color:#4a3c5c}
+
+/* ── ПОБЕДА ──────────────────────────────────────────── */
+.info-box{background:rgba(155,126,216,.09);border-radius:.95em;padding:.72em 1em;margin:.55em 0;max-width:min(370px,95%)}
+.info-box p{font-size:.95em;margin:0}
+.dolphin-wrap{position:relative;width:min(200px,45vmin);height:min(165px,37vmin);margin:.45em auto}
+
+/* ── АДАПТИВ ─────────────────────────────────────────── */
+@media(prefers-reduced-motion:reduce){*{animation-duration:0s!important;transition-duration:0s!important}}
+/* телефон в ландшафте — вертикальное сжатие */
+@media(max-height:500px){
+  .container{justify-content:flex-start;padding-top:clamp(6px,1.5vh,12px);padding-bottom:clamp(6px,1.5vh,12px)}
+  .char-zone{margin:.2em 0 .4em}
+  .char-svg{width:min(90px,22vmin);height:min(70px,17vmin)}
+  .how-box{margin:.25em 0 .5em;padding:.45em .7em}
+  .dolphin-wrap,.flower-area{width:min(140px,32vmin);height:min(115px,26vmin)}
+}
+</style>
+</head>
+<body>
+
+<!-- GLOBAL SVG DEFS -->
+<svg width="0" height="0" style="position:absolute">
+<defs>
+<!-- dolphin body -->
+<linearGradient id="dBody" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0%" stop-color="#7ec8e3"/><stop offset="50%" stop-color="#6baed6"/><stop offset="100%" stop-color="#9b7ed8"/>
+</linearGradient>
+<linearGradient id="dBelly" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0%" stop-color="#b8e4f0"/><stop offset="100%" stop-color="#d4eef7"/>
+</linearGradient>
+<filter id="dShadow"><feDropShadow dx="2" dy="3" stdDeviation="3" flood-opacity=".15"/></filter>
+<filter id="fShadow"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity=".12"/></filter>
+<!-- ромашка -->
+<radialGradient id="gDaisy" cx=".5" cy=".5" r=".5">
+  <stop offset="0%" stop-color="#fffbe8"/><stop offset="100%" stop-color="#f0ecd0"/>
+</radialGradient>
+<radialGradient id="gDaisyC" cx=".4" cy=".4" r=".5">
+  <stop offset="0%" stop-color="#ffe066"/><stop offset="100%" stop-color="#f0a820"/>
+</radialGradient>
+<!-- фиалка -->
+<radialGradient id="gViolet" cx=".5" cy=".5" r=".5">
+  <stop offset="0%" stop-color="#c8a2e0"/><stop offset="100%" stop-color="#9b6dcc"/>
+</radialGradient>
+<radialGradient id="gVioletC" cx=".4" cy=".4" r=".5">
+  <stop offset="0%" stop-color="#ffe066"/><stop offset="100%" stop-color="#f0c040"/>
+</radialGradient>
+<!-- квадрат -->
+<radialGradient id="gSquare" cx=".5" cy=".5" r=".5">
+  <stop offset="0%" stop-color="#b8e8f4"/><stop offset="100%" stop-color="#5abed8"/>
+</radialGradient>
+<radialGradient id="gSquareC" cx=".4" cy=".4" r=".5">
+  <stop offset="0%" stop-color="#a0d8e8"/><stop offset="100%" stop-color="#48a8c0"/>
+</radialGradient>
+<!-- лотос -->
+<radialGradient id="gLotus" cx=".5" cy=".5" r=".5">
+  <stop offset="0%" stop-color="#f8c0d0"/><stop offset="100%" stop-color="#e06888"/>
+</radialGradient>
+<radialGradient id="gLotusC" cx=".4" cy=".4" r=".5">
+  <stop offset="0%" stop-color="#fff0f4"/><stop offset="100%" stop-color="#f8b0c8"/>
+</radialGradient>
+</defs>
+</svg>
+
+<div class="container">
+
+<!-- ЗВУК (всегда) -->
+<div class="sound-toggle">
+  <button class="icon-btn" id="soundBtn">🔊</button>
+</div>
+<!-- ШПАРГАЛКА + МЕТРИКИ (после выбора уровня) -->
+<div class="top-btns" id="topBtns" style="display:none">
+  <button class="icon-btn" id="guideBtn">📖</button>
+  <button class="icon-btn" id="metricsBtn">📊</button>
+</div>
+
+<!-- ══ ЭКРАН 1: ПРИВЕТСТВИЕ ══════════════════════════════ -->
+<div class="screen active" id="screenStart">
+  <h1>Дышим с цветком</h1>
+
+  <!-- Дельфин + речевой пузырь -->
+  <div class="char-zone">
+    <div class="char-svg">
+      <svg viewBox="0 0 200 148" xmlns="http://www.w3.org/2000/svg">
+        <g filter="url(#dShadow)">
+          <!-- тело -->
+          <ellipse cx="92" cy="80" rx="58" ry="31" fill="url(#dBody)"/>
+          <!-- брюшко -->
+          <ellipse cx="93" cy="88" rx="40" ry="17" fill="url(#dBelly)" opacity=".72"/>
+          <!-- голова -->
+          <ellipse cx="146" cy="74" rx="27" ry="21" fill="url(#dBody)"/>
+          <!-- клюв-рострум -->
+          <path d="M165,77 Q180,75 184,79 Q180,84 165,82Z" fill="#7ec8e3"/>
+          <!-- улыбка -->
+          <path d="M165,81 Q173,88 183,82" fill="none" stroke="#4a7a9b" stroke-width="2.2" stroke-linecap="round"/>
+          <!-- глаз -->
+          <circle cx="156" cy="68" r="5.5" fill="#1e2d42"/>
+          <circle cx="154.5" cy="66.5" r="2.2" fill="#fff"/>
+          <!-- спинной плавник -->
+          <path d="M86,50 Q93,24 108,37 Q100,49 86,50Z" fill="#5a9abf"/>
+          <!-- хвост -->
+          <path d="M34,74 Q10,58 6,44 Q18,56 31,67" fill="#6baed6"/>
+          <path d="M34,82 Q10,98 6,112 Q18,100 31,89" fill="#6baed6"/>
+          <!-- грудной плавник -->
+          <path d="M118,96 Q128,112 118,116 Q115,105 118,96" fill="#5a9abf"/>
+          <!-- блик на теле -->
+          <ellipse cx="113" cy="62" rx="15" ry="4" fill="rgba(255,255,255,.28)" transform="rotate(-12,113,62)"/>
+        </g>
+      </svg>
+    </div>
+    <div class="speech-bubble">
+      <span class="speech-name">Привет! Я дельфин Волна 🐬</span>
+      Я научу тебя дышать ровно.<br>
+      <strong>Вдох</strong> — цветок раскрывается.<br>
+      <strong>Выдох</strong> — закрывается.<br>
+      Дышим вместе по счёту!
+    </div>
+  </div>
+
+  <!-- Как играть -->
+  <div class="how-box">
+    <div class="how-row"><span class="hi">🌸</span><span>Выбери цветок — у каждого своя техника дыхания</span></div>
+    <div class="how-row"><span class="hi">👁️</span><span>Посчитай лепестки — это проверка внимания</span></div>
+    <div class="how-row"><span class="hi">🔢</span><span>Дыши вместе с цветком по счёту и станет спокойнее</span></div>
+  </div>
+
+  <button class="btn" id="btnToLevels">Выбрать цветок →</button>
+</div>
+
+<!-- ══ ЭКРАН 2: ВЫБОР УРОВНЯ ═════════════════════════════ -->
+<div class="screen" id="screenLevels">
+  <h1>Выбери цветок</h1>
+  <p style="margin-bottom:10px">Каждый цветок — свой способ дыхания</p>
+  <div class="level-grid" id="levelGrid"></div>
+  <button class="btn" id="btnStartLevel" disabled>Начнём!</button>
+</div>
+
+<!-- ══ ЭКРАН 3: ОСОЗНАННОСТЬ (Лурия II) ══════════════════ -->
+<div class="screen" id="screenAwareness">
+  <p style="font-size:1.15em;font-weight:600;margin-bottom:4px" id="awTitle">Посмотри на цветок</p>
+  <div class="awareness-flower" id="awarenessFlower"></div>
+  <p>Сколько у него лепестков?</p>
+  <div class="answer-grid" id="answerGrid"></div>
+  <div class="hint-text" id="awarenessHint"></div>
+</div>
+
+<!-- ══ ЭКРАН 4: ДЫХАНИЕ (Лурия III) ═════════════════════ -->
+<div class="screen" id="screenBreath">
+  <div class="breath-label" id="breathLabel">Вдох</div>
+  <div class="breath-count" id="breathCount">1</div>
+  <div class="flower-area" id="flowerArea">
+    <!-- flower SVG injected by JS -->
+    <div class="dolphin-mini" id="dolphinMini">
+      <svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="40" cy="30" rx="25" ry="13" fill="#6baed6"/>
+        <ellipse cx="58" cy="28" rx="12" ry="9" fill="#7ec8e3"/>
+        <circle cx="62" cy="25" r="2.5" fill="#2d3748"/><circle cx="61" cy="24" r="1" fill="#fff"/>
+        <path d="M68,31 Q71,34 73,31" fill="none" stroke="#4a7a9b" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M15,28 Q5,20 8,14 Q10,22 15,25" fill="#5a9abf"/>
+        <path d="M15,32 Q5,40 8,46 Q10,38 15,35" fill="#5a9abf"/>
+      </svg>
+    </div>
+  </div>
+  <div class="progress-dots" id="progressDots"></div>
+  <div class="paused-msg" id="pausedMsg">⏸ Пауза — нажми, чтобы продолжить</div>
+  <button class="pause-btn" id="pauseBtn">⏸ Пауза</button>
+  <button class="skip-btn" id="skipBtn">Пропустить</button>
+</div>
+
+<!-- ══ ЭКРАН 5: ЗАВЕРШЕНИЕ (Лурия IV) ════════════════════ -->
+<div class="screen" id="screenWin">
+  <div class="dolphin-wrap">
+    <svg viewBox="0 0 220 180" width="200" height="160" xmlns="http://www.w3.org/2000/svg">
+      <g filter="url(#dShadow)">
+        <ellipse cx="110" cy="95" rx="65" ry="35" fill="url(#dBody)"/>
+        <ellipse cx="112" cy="102" rx="45" ry="20" fill="url(#dBelly)" opacity=".7"/>
+        <path d="M45,90 Q20,75 15,60 Q25,72 38,78" fill="#6baed6"/>
+        <path d="M45,95 Q20,110 15,125 Q25,112 38,105" fill="#6baed6"/>
+        <path d="M100,62 Q105,35 120,42 Q112,55 105,62" fill="#5a9abf"/>
+        <ellipse cx="160" cy="88" rx="30" ry="24" fill="url(#dBody)"/>
+        <path d="M170,93 Q178,105 188,95" fill="none" stroke="#4a7a9b" stroke-width="2.5" stroke-linecap="round"/>
+        <ellipse cx="185" cy="88" rx="8" ry="5" fill="#5aafe0"/>
+        <circle cx="168" cy="82" r="5" fill="#2d3748"/><circle cx="166" cy="80" r="2" fill="#fff"/>
+        <ellipse cx="125" cy="78" rx="18" ry="5" fill="rgba(255,255,255,.25)" transform="rotate(-10,125,78)"/>
+      </g>
+    </svg>
+  </div>
+  <h1>Молодец!</h1>
+  <p id="winText">Ты отлично дышишь! Дельфин Волна гордится тобой!</p>
+  <div class="info-box">
+    <p id="winHint">Когда волнуешься — вспомни цветок и подыши так же.</p>
+  </div>
+  <div class="btn-row" style="flex-direction:column;gap:10px;align-items:center">
+    <button class="btn btn-green" id="btnReady">Готов к уроку →</button>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn btn-sm btn-next" id="btnNextLevel">Следующий цветок →</button>
+      <button class="btn btn-sm btn-muted" id="btnRestart">Выбрать другой</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ МОДАЛКИ ═══════════════════════════════════════════ -->
+<div class="modal" id="guideModal">
+  <div class="modal-body">
+    <button class="modal-close" id="guideClose">&times;</button>
+    <h2>📖 Шпаргалка для взрослого</h2>
+    <div id="guideContent"></div>
+  </div>
+</div>
+
+<div class="modal" id="metricsModal">
+  <div class="modal-body">
+    <button class="modal-close" id="metricsClose">&times;</button>
+    <h2>📊 Метрики специалиста</h2>
+    <table class="metrics-table">
+      <tr><td>Уровень</td><td id="mLevel">—</td></tr>
+      <tr><td>Полных циклов</td><td id="mCycles">—</td></tr>
+      <tr><td>Общее время</td><td id="mTime">—</td></tr>
+      <tr><td>Попыток ответа</td><td id="mTries">—</td></tr>
+      <tr><td>Касания во время дыхания</td><td id="mTaps">—</td></tr>
+    </table>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+(function(){
+'use strict';
+
+// ═══════════════════════════════════════════════════════
+// УРОВНИ
+// ═══════════════════════════════════════════════════════
+const LEVELS = [
+  {
+    // Техника: равное дыхание 3+3 — первое знакомство
+    id: 1, name: 'Ромашка', emoji: '🌼', age: '5–6 лет',
+    desc: 'Вдох 3с → Выдох 3с',
+    hint: 'Равное дыхание — просто и спокойно',
+    inhale: 3000, hold1: 0, exhale: 3000, hold2: 0,
+    cycles: 3,
+    petals: 8, answers: [6, 7, 8, 10],
+    color: '#d4a020', dotColor: '#f5d76e', labelColor: '#a07010',
+    guidePattern: 'Вдох 3 с → Выдох 3 с × 3 цикла',
+    guideNote: 'Равное дыхание (sama vritti). Первое знакомство с управляемым дыханием. Подходит детям 5–6 лет и как разминка перед другими техниками.',
+  },
+  {
+    // Техника: диафрагмальное с удлинённым выдохом 4+1+5
+    id: 2, name: 'Фиалка', emoji: '🌸', age: '6–7 лет',
+    desc: 'Вдох 4с → Держим 1с → Выдох 5с',
+    hint: 'Длиннее выдох — глубже спокойствие',
+    inhale: 4000, hold1: 1000, exhale: 5000, hold2: 0,
+    cycles: 4,
+    petals: 6, answers: [4, 5, 6, 8],
+    color: '#9b7ed8', dotColor: '#c8a2e0', labelColor: '#7b5eb8',
+    guidePattern: 'Вдох 4 с → Держим 1 с → Выдох 5 с × 4 цикла',
+    guideNote: 'Диафрагмальное дыхание с удлинённым выдохом. Небольшая задержка помогает полностью выдохнуть. Активирует парасимпатическую систему, снижает тревогу.',
+  },
+  {
+    // Техника: квадратное дыхание 4+4+4+4 (Box Breathing)
+    id: 3, name: 'Квадрат', emoji: '🔷', age: '7–8 лет',
+    desc: 'Вдох 4с → Держим 4с → Выдох 4с → Держим 4с',
+    hint: 'Квадратное дыхание — для концентрации и баланса',
+    inhale: 4000, hold1: 4000, exhale: 4000, hold2: 4000,
+    cycles: 4,
+    petals: 4, answers: [3, 4, 5, 6],
+    color: '#3a9ec0', dotColor: '#80ccde', labelColor: '#2a7e9e',
+    guidePattern: 'Вдох 4 с → Держим 4 с → Выдох 4 с → Держим 4 с × 4 цикла',
+    guideNote: 'Box Breathing (4-4-4-4). Четыре равные фазы балансируют нервную систему. Применяется у спортсменов, в армии и когнитивной терапии. Отлично перед контрольными.',
+  },
+  {
+    // Техника: расслабляющее дыхание 4+2+6 (Extended exhale)
+    id: 4, name: 'Лотос', emoji: '🌺', age: '8+ лет',
+    desc: 'Вдох 4с → Держим 2с → Выдох 6с',
+    hint: 'Длинный выдох — самый мощный успокаивающий эффект',
+    inhale: 4000, hold1: 2000, exhale: 6000, hold2: 0,
+    cycles: 5,
+    petals: 5, answers: [4, 5, 6, 7],
+    color: '#c84878', dotColor: '#f4a0b8', labelColor: '#a03060',
+    guidePattern: 'Вдох 4 с → Держим 2 с → Выдох 6 с × 5 циклов',
+    guideNote: 'Расслабляющее дыхание (4-2-6). Длинный выдох максимально усиливает вагальный тонус — парасимпатический эффект глубже, чем при любой другой технике.',
+  },
+];
+
+// ═══════════════════════════════════════════════════════
+// SVG ЦВЕТКОВ
+// ═══════════════════════════════════════════════════════
+function makePetals(n, rotStep, rx, ry, cy, fill, op) {
+  return Array.from({length: n}, (_,i) =>
+    `<ellipse cx="100" cy="${cy}" rx="${rx}" ry="${ry}" fill="${fill}" opacity="${op}" transform="rotate(${i*rotStep},100,100)"/>`
+  ).join('');
+}
+
+function flowerSVG(lvId, size, animated) {
+  const s = size || 200;
+  const gid = animated ? ' id="petalGroup"' : '';
+  const gStyle = `style="transform-box:fill-box;transform-origin:center"`;
+
+  switch(lvId) {
+    case 1: // Ромашка — 8 белых лепестков, жёлтый центр
+      return `<svg viewBox="0 0 200 200" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg">
+        <g${gid} filter="url(#fShadow)" ${gStyle}>
+          ${makePetals(8,45,11,44,50,'url(#gDaisy)','.92')}
+        </g>
+        <circle cx="100" cy="100" r="21" fill="url(#gDaisyC)" filter="url(#fShadow)"/>
+        <circle cx="93" cy="93" r="5" fill="rgba(255,255,255,.4)"/>
+      </svg>`;
+    case 2: // Фиалка — 6 фиолетовых лепестков
+      return `<svg viewBox="0 0 200 200" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg">
+        <g${gid} filter="url(#fShadow)" ${gStyle}>
+          ${makePetals(6,60,22,38,55,'url(#gViolet)','.9')}
+        </g>
+        <circle cx="100" cy="100" r="20" fill="url(#gVioletC)" filter="url(#fShadow)"/>
+        <circle cx="93" cy="93" r="5" fill="rgba(255,255,255,.35)"/>
+      </svg>`;
+    case 3: // Квадрат — 4 широких голубых лепестка
+      return `<svg viewBox="0 0 200 200" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg">
+        <g${gid} filter="url(#fShadow)" ${gStyle}>
+          ${makePetals(4,90,28,46,52,'url(#gSquare)','.88')}
+        </g>
+        <circle cx="100" cy="100" r="22" fill="url(#gSquareC)" filter="url(#fShadow)"/>
+        <circle cx="93" cy="93" r="5" fill="rgba(255,255,255,.4)"/>
+      </svg>`;
+    case 4: // Лотос — ровно 5 розовых лепестков + тычинки в центре
+      return `<svg viewBox="0 0 200 200" width="${s}" height="${s}" xmlns="http://www.w3.org/2000/svg">
+        <g${gid} filter="url(#fShadow)" ${gStyle}>
+          ${makePetals(5,72,18,44,53,'url(#gLotus)','.88')}
+        </g>
+        <circle cx="100" cy="100" r="20" fill="url(#gLotusC)" filter="url(#fShadow)"/>
+        <circle cx="100" cy="87" r="3.5" fill="#f4a0b8" opacity=".85"/>
+        <circle cx="111" cy="93" r="3.5" fill="#f4a0b8" opacity=".85"/>
+        <circle cx="107" cy="106" r="3.5" fill="#f4a0b8" opacity=".85"/>
+        <circle cx="93"  cy="106" r="3.5" fill="#f4a0b8" opacity=".85"/>
+        <circle cx="89"  cy="93"  r="3.5" fill="#f4a0b8" opacity=".85"/>
+        <circle cx="93" cy="93" r="5" fill="rgba(255,255,255,.5)"/>
+      </svg>`;
+  }
+  return '';
+}
+
+// ═══════════════════════════════════════════════════════
+// СОСТОЯНИЕ
+// ═══════════════════════════════════════════════════════
+let state = 'start';
+let currentLevel = null;
+let selectedLvId = null;
+let currentCycle = 0;
+let breathTimers = [];
+let countTimer = null;
+let startTime = 0;
+let tapsDuringBreath = 0;
+let answerTries = 0;
+let awarenessLocked = false;
+let soundOn = true;
+let audioCtx = null;
+let bgOsc = null, bgGain = null;
+
+const $ = id => document.getElementById(id);
+const SCREENS = {
+  start: $('screenStart'), levels: $('screenLevels'),
+  awareness: $('screenAwareness'), breath: $('screenBreath'), win: $('screenWin'),
+};
+
+function showScreen(name) {
+  Object.values(SCREENS).forEach(s => s.classList.remove('active'));
+  SCREENS[name].classList.add('active');
+  state = name;
+}
+
+// ═══════════════════════════════════════════════════════
+// AUDIO — мягкий плавный звук дыхания без бипов
+// ═══════════════════════════════════════════════════════
+function initAudio() {
+  if (audioCtx) { audioCtx.resume(); return; }
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+}
+
+// Короткий UI-тон только для кнопок (очень тихий)
+function playTone(freq, dur, vol) {
+  if (!soundOn || !audioCtx) return;
+  try {
+    const osc = audioCtx.createOscillator(), g = audioCtx.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq || 400;
+    const v = (vol || 0.05) * 0.5; // вдвое тише
+    g.gain.setValueAtTime(v, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur || 0.3));
+    osc.connect(g).connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + (dur || 0.3));
+  } catch(e){}
+}
+
+// Фоновый + дыхательный осциллятор — единый непрерывный тон
+function startBgTone() {
+  if (!soundOn || !audioCtx || bgOsc) return;
+  try {
+    bgOsc = audioCtx.createOscillator();
+    bgGain = audioCtx.createGain();
+    bgOsc.type = 'sine';
+    bgOsc.frequency.value = 108;
+    bgGain.gain.value = 0;
+    bgOsc.connect(bgGain).connect(audioCtx.destination);
+    bgOsc.start();
+    // плавное появление
+    bgGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    bgGain.gain.linearRampToValueAtTime(0.018, audioCtx.currentTime + 1.5);
+  } catch(e){}
+}
+function stopBgTone() {
+  if (!bgOsc) return;
+  try {
+    if (bgGain && audioCtx) {
+      bgGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.4);
+      setTimeout(() => { try { bgOsc.stop(); } catch(e){} bgOsc = null; bgGain = null; }, 800);
+    } else {
+      bgOsc.stop(); bgOsc = null; bgGain = null;
+    }
+  } catch(e){ bgOsc = null; bgGain = null; }
+}
+
+// Плавная смена тона по фазе дыхания — вместо бипов
+function setBreathPhaseSound(type, dur) {
+  if (!soundOn || !bgOsc || !bgGain || !audioCtx) return;
+  const t = audioCtx.currentTime;
+  const d = dur / 1000;
+  try {
+    switch(type) {
+      case 'inhale':
+        // тон плавно поднимается 108→130 Гц, громче на пике
+        bgOsc.frequency.cancelScheduledValues(t);
+        bgGain.gain.cancelScheduledValues(t);
+        bgOsc.frequency.setValueAtTime(bgOsc.frequency.value, t);
+        bgOsc.frequency.linearRampToValueAtTime(130, t + d * 0.85);
+        bgGain.gain.setValueAtTime(bgGain.gain.value, t);
+        bgGain.gain.linearRampToValueAtTime(0.024, t + d * 0.5);
+        bgGain.gain.linearRampToValueAtTime(0.020, t + d);
+        break;
+      case 'hold-open':
+        // тон держится высокий, чуть затихает
+        bgOsc.frequency.cancelScheduledValues(t);
+        bgGain.gain.cancelScheduledValues(t);
+        bgOsc.frequency.setValueAtTime(130, t);
+        bgGain.gain.setValueAtTime(bgGain.gain.value, t);
+        bgGain.gain.linearRampToValueAtTime(0.014, t + d);
+        break;
+      case 'exhale':
+        // тон плавно опускается 130→100 Гц, затихает
+        bgOsc.frequency.cancelScheduledValues(t);
+        bgGain.gain.cancelScheduledValues(t);
+        bgOsc.frequency.setValueAtTime(bgOsc.frequency.value, t);
+        bgOsc.frequency.linearRampToValueAtTime(100, t + d * 0.85);
+        bgGain.gain.setValueAtTime(bgGain.gain.value, t);
+        bgGain.gain.linearRampToValueAtTime(0.022, t + d * 0.3);
+        bgGain.gain.linearRampToValueAtTime(0.010, t + d);
+        break;
+      case 'hold-closed':
+        // почти тишина, тон низкий
+        bgOsc.frequency.cancelScheduledValues(t);
+        bgGain.gain.cancelScheduledValues(t);
+        bgOsc.frequency.setValueAtTime(100, t);
+        bgGain.gain.setValueAtTime(bgGain.gain.value, t);
+        bgGain.gain.linearRampToValueAtTime(0.007, t + d * 0.5);
+        bgGain.gain.linearRampToValueAtTime(0.007, t + d);
+        break;
+    }
+  } catch(e){}
+}
+
+function setBgFreq(f) {
+  // оставлено для совместимости, не используется в runPhase
+  if (!bgOsc || !audioCtx) return;
+  bgOsc.frequency.setTargetAtTime(f, audioCtx.currentTime, 0.6);
+}
+
+// ═══════════════════════════════════════════════════════
+// АНИМАЦИИ
+// ═══════════════════════════════════════════════════════
+function animatePetals(scale, dur) {
+  const pg = $('petalGroup');
+  if (!pg) return;
+  pg.style.transition = `transform ${dur}ms ease-in-out`;
+  pg.style.transform = `scale(${scale})`;
+}
+function freezePetals() {
+  const pg = $('petalGroup');
+  if (!pg) return;
+  const cur = window.getComputedStyle(pg).transform;
+  pg.style.transition = 'none';
+  pg.style.transform = cur;
+}
+function animateDolphin(phase, dur) {
+  const dm = $('dolphinMini');
+  if (!dm || !dm.animate) return;
+  dm.getAnimations().forEach(a => a.cancel());
+  const [f, t] = phase === 'in' ? ['scale(1)','scale(1.14)'] : ['scale(1.14)','scale(1)'];
+  dm.animate([{transform:f},{transform:t}], {duration: dur, fill:'forwards', easing:'ease-in-out'});
+}
+
+// ═══════════════════════════════════════════════════════
+// СЧЁТЧИК
+// ═══════════════════════════════════════════════════════
+function startCount(dir, steps) {
+  clearInterval(countTimer);
+  let tick = 0;
+  const el = $('breathCount');
+  const update = () => {
+    const n = dir === 'up' ? tick + 1 : steps - tick;
+    el.textContent = n;
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+    tick++;
+    if (tick >= steps) clearInterval(countTimer);
+  };
+  update(); countTimer = setInterval(update, 1000);
+}
+
+// ═══════════════════════════════════════════════════════
+// ФАЗЫ ДЫХАНИЯ
+// ═══════════════════════════════════════════════════════
+function clearAllTimers() {
+  breathTimers.forEach(clearTimeout); breathTimers = [];
+  clearInterval(countTimer);
+}
+
+function runPhase(type, dur, onDone) {
+  if (state !== 'breath') return;
+  const lv = currentLevel;
+  const steps = Math.round(dur / 1000);
+
+  // цвет метки по уровню
+  $('breathLabel').style.color = lv.labelColor;
+  $('breathCount').style.color = lv.color;
+
+  // мягкий плавный звук следует за дыханием
+  setBreathPhaseSound(type, dur);
+
+  switch(type) {
+    case 'inhale':
+      $('breathLabel').textContent = 'Вдох';
+      animatePetals(1.28, dur);
+      animateDolphin('in', dur);
+      startCount('up', steps);
+      break;
+    case 'hold-open':
+      $('breathLabel').textContent = 'Держим';
+      startCount('down', steps);
+      break;
+    case 'exhale':
+      $('breathLabel').textContent = 'Выдох';
+      animatePetals(0.80, dur);
+      animateDolphin('out', dur);
+      startCount('down', steps);
+      break;
+    case 'hold-closed':
+      $('breathLabel').textContent = 'Держим';
+      startCount('down', steps);
+      break;
+  }
+
+  const t = setTimeout(() => { if (state === 'breath') onDone(); }, dur);
+  breathTimers.push(t);
+}
+
+function buildSequence(lv) {
+  const seq = [['inhale', lv.inhale]];
+  if (lv.hold1 > 0) seq.push(['hold-open', lv.hold1]);
+  seq.push(['exhale', lv.exhale]);
+  if (lv.hold2 > 0) seq.push(['hold-closed', lv.hold2]);
+  return seq;
+}
+
+function runCycle() {
+  if (state !== 'breath') return;
+  if (currentCycle >= currentLevel.cycles) { finishBreathing(); return; }
+
+  const seq = buildSequence(currentLevel);
+  let i = 0;
+  function next() {
+    if (state !== 'breath') return;
+    if (i >= seq.length) {
+      currentCycle++;
+      const dots = $('progressDots').children;
+      if (dots[currentCycle-1]) {
+        dots[currentCycle-1].classList.add('done');
+        dots[currentCycle-1].style.background = currentLevel.dotColor;
+      }
+      runCycle();
+      return;
+    }
+    const [type, dur] = seq[i++];
+    runPhase(type, dur, next);
+  }
+  next();
+}
+
+function startBreathing() {
+  initAudio(); startBgTone();
+  currentCycle = 0; tapsDuringBreath = 0; startTime = Date.now();
+  // dots
+  const dc = $('progressDots'); dc.innerHTML = '';
+  for (let i = 0; i < currentLevel.cycles; i++) {
+    const d = document.createElement('div'); d.className = 'dot'; dc.appendChild(d);
+  }
+  // inject flower SVG
+  const fa = $('flowerArea');
+  const svg = fa.querySelector('svg');
+  if (svg) svg.remove();
+  fa.insertAdjacentHTML('afterbegin', flowerSVG(currentLevel.id, 200, true));
+  animatePetals(1, 0);
+  $('pauseBtn').textContent = '⏸ Пауза';
+  $('pausedMsg').classList.remove('visible');
+  showScreen('breath');
+  setTimeout(runCycle, 600);
+}
+
+function finishBreathing() {
+  clearAllTimers(); stopBgTone();
+  playTone(430, 0.35, 0.06);
+  setTimeout(() => playTone(540, 0.45, 0.04), 400);
+  updateMetrics();
+  // win text
+  $('winText').textContent = `Ты освоил дыхание «${currentLevel.name}»! Отлично!`;
+  $('winHint').textContent = currentLevel.hint;
+  // следующий уровень
+  const nextLv = LEVELS.find(l => l.id === currentLevel.id + 1);
+  const btnNext = $('btnNextLevel');
+  if (nextLv) {
+    btnNext.style.display = '';
+    btnNext.textContent = `${nextLv.emoji} ${nextLv.name} →`;
+    btnNext.dataset.nextId = nextLv.id;
+  } else {
+    btnNext.style.display = 'none';
+  }
+  // reset ready-btn state
+  $('btnReady').textContent = 'Готов к уроку →';
+  $('btnReady').disabled = false; $('btnReady').style.opacity = '1';
+  showScreen('win');
+}
+
+// ═══════════════════════════════════════════════════════
+// ПАУЗА
+// ═══════════════════════════════════════════════════════
+function togglePause() {
+  if (state === 'breath') {
+    clearAllTimers(); state = 'paused';
+    freezePetals();
+    const dm = $('dolphinMini');
+    if (dm && dm.getAnimations) dm.getAnimations().forEach(a => a.pause());
+    if (bgGain && audioCtx) bgGain.gain.setTargetAtTime(0.003, audioCtx.currentTime, 0.4);
+    $('pauseBtn').textContent = '▶ Продолжить';
+    $('pausedMsg').classList.add('visible');
+  } else if (state === 'paused') {
+    state = 'breath';
+    if (bgGain && audioCtx) bgGain.gain.setTargetAtTime(0.02, audioCtx.currentTime, 0.4);
+    $('pauseBtn').textContent = '⏸ Пауза';
+    $('pausedMsg').classList.remove('visible');
+    runCycle();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// МЕТРИКИ
+// ═══════════════════════════════════════════════════════
+function updateMetrics() {
+  const e = Math.round((Date.now() - startTime) / 1000);
+  const m = Math.floor(e/60), s = e%60;
+  $('mLevel').textContent   = currentLevel ? `${currentLevel.emoji} ${currentLevel.name}` : '—';
+  $('mCycles').textContent  = currentCycle + ' из ' + (currentLevel ? currentLevel.cycles : '?');
+  $('mTime').textContent    = (m > 0 ? m+' мин ' : '') + s + ' сек';
+  $('mTries').textContent   = answerTries;
+  $('mTaps').textContent    = tapsDuringBreath;
+}
+
+// ═══════════════════════════════════════════════════════
+// ВЫБОР УРОВНЯ
+// ═══════════════════════════════════════════════════════
+function buildLevelCards() {
+  const grid = $('levelGrid'); grid.innerHTML = '';
+  LEVELS.forEach(lv => {
+    const card = document.createElement('div');
+    card.className = 'level-card';
+    card.dataset.id = lv.id;
+    card.innerHTML = `
+      <div class="lc-emoji">${lv.emoji}</div>
+      <div class="lc-name" style="color:${lv.color}">${lv.name}</div>
+      <div class="lc-age">${lv.age}</div>
+      <div class="lc-pattern">${lv.desc}</div>
+    `;
+    card.addEventListener('click', () => selectLevel(lv, card));
+    grid.appendChild(card);
+  });
+}
+
+function selectLevel(lv, card) {
+  selectedLvId = lv.id;
+  document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  $('btnStartLevel').disabled = false;
+  $('btnStartLevel').style.background = lv.color;
+  $('btnStartLevel').style.boxShadow = `0 5px 0 ${lv.labelColor}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// ОСОЗНАННОСТЬ
+// ═══════════════════════════════════════════════════════
+function openAwareness() {
+  currentLevel = LEVELS.find(l => l.id === selectedLvId);
+  awarenessLocked = false; answerTries = 0;
+  // flower preview
+  $('awarenessFlower').innerHTML = flowerSVG(currentLevel.id, 160, false);
+  $('awTitle').style.color = currentLevel.color;
+  $('awarenessHint').textContent = '';
+  // answer buttons (shuffled)
+  const ans = [...currentLevel.answers].sort(() => Math.random() - 0.5);
+  const grid = $('answerGrid'); grid.innerHTML = '';
+  ans.forEach(v => {
+    const b = document.createElement('button');
+    b.className = 'answer-btn'; b.textContent = v;
+    b.style.borderColor = currentLevel.color + '88';
+    b.addEventListener('click', () => handleAnswer(v));
+    grid.appendChild(b);
+  });
+  $('topBtns').style.display = 'flex';
+  showScreen('awareness');
+}
+
+function handleAnswer(val) {
+  if (awarenessLocked) return;
+  answerTries++;
+  if (val === currentLevel.petals) {
+    awarenessLocked = true;
+    document.querySelectorAll('.answer-btn').forEach(b => {
+      if (+b.textContent === currentLevel.petals) {
+        b.classList.add('correct');
+        b.style.background = currentLevel.dotColor;
+        b.style.borderColor = currentLevel.color;
+      }
+    });
+    playTone(500, 0.45, 0.08);
+    $('awarenessHint').textContent = `Верно — ${currentLevel.petals}! Теперь дышим вместе ${currentLevel.emoji}`;
+    setTimeout(startBreathing, 1400);
+  } else {
+    const btn = [...document.querySelectorAll('.answer-btn')].find(b => +b.textContent === val);
+    if (btn) { btn.classList.add('wrong'); setTimeout(() => btn.classList.remove('wrong'), 500); }
+    playTone(210, 0.25, 0.06);
+    $('awarenessHint').textContent = 'Посчитай ещё раз — лепестки одинаковые 🔍';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// ШПАРГАЛКА (динамическая по уровню)
+// ═══════════════════════════════════════════════════════
+function updateGuide() {
+  if (!currentLevel) return;
+  const lv = currentLevel;
+  $('guideContent').innerHTML = `
+    <p><strong>Цветок:</strong> ${lv.emoji} ${lv.name} · ${lv.age}</p>
+    <p><strong>Паттерн:</strong> ${lv.guidePattern}</p>
+    <p><strong>Что это даёт:</strong> ${lv.guideNote}</p>
+    <p><strong>Маршрут по Лурии:</strong><br>
+      I. Вход — приветствие дельфина<br>
+      II. Восприятие — считаем лепестки цветка<br>
+      III. Контроль — дышим по счёту<br>
+      IV. Завершение — «Готов к уроку»
+    </p>
+    <p><strong>Как провести:</strong> Сядьте рядом. «Смотри, цветок дышит — считай вместе с ним». Дышите вслух вместе.</p>
+    <p><strong>Если трудно:</strong> Дышите сами, ребёнок наблюдает — потом повторяет.</p>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════
+// СОБЫТИЯ
+// ═══════════════════════════════════════════════════════
+$('btnToLevels').addEventListener('click', () => {
+  initAudio(); playTone(440, 0.2, 0.08);
+  buildLevelCards();
+  showScreen('levels');
+});
+
+$('btnStartLevel').addEventListener('click', () => {
+  if (!selectedLvId) return;
+  playTone(480, 0.2, 0.08);
+  openAwareness();
+});
+
+$('pauseBtn').addEventListener('click', togglePause);
+
+$('skipBtn').addEventListener('click', () => {
+  clearAllTimers(); finishBreathing();
+});
+
+$('btnReady').addEventListener('click', () => {
+  playTone(520, 0.35, 0.04);
+  setTimeout(() => playTone(650, 0.4, 0.03), 320);
+  $('winText').textContent = 'Отлично! Переходи к уроку 🎉';
+  $('btnReady').textContent = '✓ Готов!';
+  $('btnReady').disabled = true;
+  $('btnReady').style.opacity = '.6';
+});
+
+$('btnNextLevel').addEventListener('click', () => {
+  const nextId = +$('btnNextLevel').dataset.nextId;
+  if (!nextId) return;
+  clearAllTimers(); stopBgTone();
+  selectedLvId = nextId;
+  playTone(480, 0.2, 0.04);
+  openAwareness();
+});
+
+$('btnRestart').addEventListener('click', () => {
+  clearAllTimers(); stopBgTone();
+  selectedLvId = null;
+  $('btnStartLevel').disabled = true;
+  document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
+  $('topBtns').style.display = 'none';
+  buildLevelCards();
+  showScreen('levels');
+});
+
+$('screenBreath').addEventListener('click', e => {
+  if (e.target === $('pauseBtn') || e.target === $('skipBtn')) return;
+  if (state === 'breath') tapsDuringBreath++;
+});
+
+$('soundBtn').addEventListener('click', () => {
+  soundOn = !soundOn;
+  $('soundBtn').textContent = soundOn ? '🔊' : '🔇';
+  if (!soundOn) stopBgTone();
+  else if (state === 'breath' || state === 'paused') { initAudio(); startBgTone(); }
+});
+
+$('guideBtn').addEventListener('click', () => { updateGuide(); $('guideModal').classList.add('active'); });
+$('guideClose').addEventListener('click', () => $('guideModal').classList.remove('active'));
+$('metricsBtn').addEventListener('click', () => { updateMetrics(); $('metricsModal').classList.add('active'); });
+$('metricsClose').addEventListener('click', () => $('metricsModal').classList.remove('active'));
+document.querySelectorAll('.modal').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+});
+
+})();
+</script>
+</body>
+</html>
