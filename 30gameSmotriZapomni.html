@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Смотри и запомни</title>
+  <style>
+    /* ── Основа ── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { font-size: clamp(13px, 4.2vmin, 17px); }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #fdf6ec;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: clamp(8px, 2.5vmin, 20px);
+    }
+
+    .container {
+      max-width: min(900px, 100%);
+      width: 100%;
+      background: #fdf6ec;
+      border-radius: clamp(16px, 4vmin, 32px);
+      padding: clamp(16px, 4vmin, 40px);
+      position: relative;
+    }
+
+    /* ── Экраны ── */
+    .screen { display: none; animation: fadeIn 0.45s ease; }
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(12px, 3.5vmin, 26px);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Персонаж ── */
+    .character {
+      width: clamp(80px, 19vmin, 150px);
+      height: clamp(80px, 19vmin, 150px);
+      animation: owlFloat 4s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    .character.enter { animation: owlEnter 1.4s ease-out forwards; }
+
+    @keyframes owlFloat {
+      0%, 100% { transform: scale(1) translateY(0); }
+      50%       { transform: scale(1.04) translateY(-8px); }
+    }
+
+    @keyframes owlEnter {
+      0%   { opacity: 0; transform: translateX(-160px) translateY(-80px) scale(0.5); }
+      60%  { transform: translateX(-20px) translateY(-120px) scale(0.85) rotateZ(-10deg); }
+      100% { opacity: 1; transform: none; }
+    }
+
+    @keyframes wingFlap {
+      0%, 100% { transform: rotateZ(0deg); }
+      25%       { transform: rotateZ(-18deg); }
+      75%       { transform: rotateZ(18deg); }
+    }
+
+    /* ── Типографика ── */
+    h1 { font-size: clamp(22px, 5.5vmin, 34px); color: #5a4a3a; text-align: center; }
+    h2 { font-size: clamp(17px, 4.3vmin, 24px); color: #5a4a3a; text-align: center; }
+
+    .description {
+      font-size: clamp(14px, 3.4vmin, 17px);
+      color: #7a6a5a;
+      text-align: center;
+      line-height: 1.55;
+      max-width: 560px;
+    }
+
+    /* ── Кнопки ── */
+    .button {
+      background: linear-gradient(135deg, #d4a574, #c8956a);
+      border: none; color: white;
+      padding: clamp(13px, 3.3vmin, 20px) clamp(28px, 7vmin, 50px);
+      font-size: clamp(15px, 3.8vmin, 20px);
+      border-radius: clamp(13px, 3.3vmin, 20px);
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(212,165,116,0.4);
+      transition: transform .25s, box-shadow .25s;
+      font-weight: bold;
+      min-width: clamp(180px, 46vmin, 280px);
+      min-height: clamp(52px, 13vmin, 68px);
+    }
+
+    .button:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(212,165,116,0.5); }
+    .button:active { transform: translateY(-1px); }
+
+    .button.ghost {
+      background: white;
+      color: #a08060;
+      border: 2px solid #d4a574;
+      box-shadow: none;
+      min-width: clamp(160px, 40vmin, 240px);
+    }
+    .button.ghost:hover { background: #fbf1e4; box-shadow: 0 6px 16px rgba(212,165,116,.2); }
+
+    .icon-btn {
+      background: rgba(212,165,116,0.18);
+      border: 2px solid #d4a574;
+      width: clamp(52px, 13vmin, 64px);
+      height: clamp(52px, 13vmin, 64px);
+      border-radius: clamp(10px, 2.5vmin, 14px);
+      cursor: pointer;
+      font-size: clamp(20px, 5vmin, 27px);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .25s;
+      flex-shrink: 0;
+    }
+
+    .icon-btn:hover { background: #d4a574; }
+
+    .controls {
+      display: flex;
+      gap: clamp(10px, 2.5vmin, 15px);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ── Карточки уровней ── */
+    .level-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(clamp(120px,32vmin,160px), 1fr));
+      gap: clamp(10px, 2.5vmin, 16px);
+      width: 100%;
+      max-width: 640px;
+    }
+
+    .level-card {
+      background: white;
+      border: 3px solid #d4a574;
+      border-radius: clamp(14px, 3.5vmin, 20px);
+      padding: clamp(14px, 3.5vmin, 18px) clamp(8px, 2vmin, 12px);
+      display: flex; flex-direction: column; align-items: center; gap: clamp(4px,1vmin,7px);
+      cursor: pointer;
+      min-height: clamp(112px, 24vmin, 140px);
+      transition: transform .2s, box-shadow .2s;
+      text-align: center;
+    }
+
+    .level-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(212,165,116,.35); }
+
+    .level-card .lv-emoji { font-size: clamp(28px, 7vmin, 38px); }
+    .level-card .lv-name  { font-weight: 700; color: #5a4a3a; font-size: clamp(14px, 3.5vmin, 17px); }
+    .level-card .lv-desc  { font-size: clamp(11px, 2.7vmin, 13px); color: #7a6a5a; line-height: 1.3; }
+    .level-card .lv-dots  { display: flex; gap: 4px; margin-top: 2px; }
+    .level-card .lv-dot   {
+      width: clamp(7px, 1.8vmin, 10px); height: clamp(7px, 1.8vmin, 10px);
+      border-radius: 50%; background: #e0d0c0;
+    }
+    .level-card .lv-dot.filled { background: #4caf50; }
+    .level-card .lv-done { font-size: clamp(11px, 2.7vmin, 13px); color: #4caf50; font-weight: 700; margin-top: 2px; }
+
+    .level-card.locked {
+      cursor: default;
+      background: #f4ece0;
+      border-color: #d9cbb8;
+      opacity: .75;
+    }
+    .level-card.locked:hover { transform: none; box-shadow: none; }
+    .level-card.locked .lv-emoji { filter: grayscale(1); opacity: .6; }
+    .level-card.locked .lv-desc { color: #a89a88; }
+
+    /* ── Прогресс-бар (сколько задачек до следующего уровня) ── */
+    .progress-bar {
+      width: 100%;
+      height: clamp(7px, 1.6vmin, 10px);
+      background: #e0d0c0;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #d4a574, #c8956a);
+      width: 0%;
+      transition: width .35s ease;
+    }
+    .task-progress {
+      font-size: clamp(12px, 3vmin, 14px);
+      color: #a08060;
+      text-align: center;
+    }
+
+    /* ── Сетка картинок ── */
+    .memory-grid {
+      display: grid;
+      gap: clamp(8px, 2vmin, 14px);
+      width: 100%;
+      max-width: min(680px, 100%);
+      justify-items: center;
+      justify-content: center;
+    }
+
+    #memoryDisplay {
+      grid-template-columns: repeat(auto-fit, clamp(82px, 19vmin, 120px));
+    }
+
+    #memoryGrid {
+      grid-template-columns: repeat(var(--gcols, 3), clamp(72px, 17vmin, 110px));
+    }
+
+    .memory-item {
+      width: clamp(72px, 17vmin, 110px);
+      height: clamp(72px, 17vmin, 110px);
+      background: white;
+      border: 3px solid #d4a574;
+      border-radius: clamp(10px, 2.5vmin, 16px);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: transform .18s, box-shadow .18s, border-color .18s, background .18s;
+      user-select: none;
+    }
+
+    .memory-item span { font-size: clamp(30px, 8vmin, 52px); line-height: 1; }
+
+    .memory-item:hover  { transform: scale(1.06); box-shadow: 0 6px 18px rgba(212,165,116,.3); }
+    .memory-item.correct { border-color: #4caf50; background: #e8f5e9;
+                           box-shadow: 0 0 0 3px rgba(76,175,80,.2); }
+    .memory-item.wrong   { border-color: #ff9800; background: #fff3e0; }
+
+    /* ── Обратный отсчёт ── */
+    .countdown {
+      font-size: clamp(32px, 8.5vmin, 52px);
+      font-weight: 800;
+      color: #c8956a;
+      min-height: 1.4em;
+      text-align: center;
+      letter-spacing: .04em;
+      transition: opacity .3s;
+    }
+
+    .round-info {
+      font-size: clamp(14px, 3.4vmin, 17px);
+      color: #7a6a5a;
+      text-align: center;
+    }
+
+    .hint {
+      font-size: clamp(13px, 3.2vmin, 16px);
+      color: #d4a574;
+      font-style: italic;
+      text-align: center;
+      min-height: 1.4em;
+    }
+
+    .success-message { color: #4caf50; font-weight: bold; font-style: normal; }
+
+    .link-btn {
+      background: none; border: none;
+      color: #a08060;
+      text-decoration: underline;
+      font-size: clamp(12px, 3vmin, 14px);
+      cursor: pointer;
+      padding: 6px;
+    }
+
+    /* ── Шпаргалка / Метрики ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.32); z-index: 999;
+    }
+    .modal-overlay.active { display: block; }
+
+    .modal-box {
+      display: none; position: fixed;
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: white;
+      padding: clamp(18px, 4.5vmin, 30px);
+      border-radius: clamp(14px, 3.5vmin, 20px);
+      box-shadow: 0 20px 60px rgba(0,0,0,.28);
+      max-width: min(480px, 92vw);
+      width: 90%; z-index: 1000;
+      max-height: 85vh; overflow-y: auto;
+    }
+    .modal-box.active { display: block; }
+
+    .modal-box h3 {
+      margin-bottom: clamp(10px, 2.5vmin, 18px);
+      color: #5a4a3a;
+      font-size: clamp(15px, 3.8vmin, 19px);
+    }
+
+    .modal-box p {
+      margin: clamp(7px, 1.8vmin, 12px) 0;
+      color: #7a6a5a;
+      font-size: clamp(13px, 3.2vmin, 15px);
+      line-height: 1.62;
+    }
+
+    .modal-close {
+      position: absolute; top: clamp(8px,2vmin,14px); right: clamp(10px,2.5vmin,15px);
+      background: none; border: none;
+      font-size: clamp(20px, 5vmin, 26px);
+      cursor: pointer; color: #5a4a3a; line-height: 1;
+    }
+
+    .hidden-metrics {
+      position: absolute; bottom: 8px; right: 10px;
+      font-size: 11px; opacity: .28; cursor: pointer; transition: opacity .3s;
+    }
+    .hidden-metrics:hover { opacity: .75; }
+
+    /* ── Адаптив ── */
+    @media (max-height: 500px) {
+      .character { display: none; }
+      .screen.active { gap: 6px; }
+      .container { padding: 10px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="modal-overlay" id="modalOverlay"></div>
+
+  <!-- Шпаргалка -->
+  <div class="modal-box" id="cheatsheet">
+    <button class="modal-close" onclick="closeModal('cheatsheet')">✕</button>
+    <h3>📖 Шпаргалка для взрослого</h3>
+    <p><strong>Что тренируем?</strong> Объём кратковременной зрительной памяти, произвольное внимание и скорость зрительного кодирования.</p>
+    <p><strong>Как помочь:</strong> называйте картинки вслух вместе — «Яблоко! Звезда! Кошка!» Проговаривание вслух удваивает точность запоминания (эффект двойного кодирования).</p>
+    <p><strong>Уровни и тайминги</strong> подобраны по нормам зрительной памяти детей 5–8 лет:<br>
+       <em>🌱 Лёгкий — 3 картинки среди 6, 6 секунд<br>
+       🌿 Средний — 3 картинки среди 8, 8 секунд<br>
+       🌳 Сложнее — 3–4 картинки среди 9, 8 секунд<br>
+       🏆 Сложный — 4–5 картинок среди 12, 10 секунд</em></p>
+    <p><strong>Бесконечная игра и прогресс:</strong> каждый повтор — новый набор картинок. Чтобы открыть следующий уровень, нужно 5 раз успешно пройти текущий (прогресс виден на карточке уровня и во время игры).</p>
+    <p><strong>Если трудно:</strong> начните с уровня «Лёгкий»; называйте каждую картинку вслух во время показа.</p>
+    <p><strong>Источники:</strong> Cowan 2001 (объём рабочей памяти детей ≈ 3–4 ед.), Gathercole &amp; Pickering 2000, Simmering 2012 (динамика развития зрительной памяти).</p>
+  </div>
+
+  <!-- Метрики -->
+  <div class="modal-box" id="metricsPan">
+    <button class="modal-close" onclick="closeModal('metricsPan')">✕</button>
+    <h3>📊 Метрики сессии</h3>
+    <p>Верных выборов: <strong id="mCorrect">0</strong></p>
+    <p>Ошибочных нажатий: <strong id="mWrong">0</strong></p>
+    <p>Самый трудный уровень: <strong id="mHard">—</strong></p>
+    <p style="margin-top:14px;font-size:12px;color:#bbb;">Ошибки по уровням: <span id="mErrors">—</span></p>
+  </div>
+
+  <div class="container">
+
+    <!-- ─── ЭКРАН 1: Знакомство ─── -->
+    <div class="screen active" id="screen1">
+      <svg class="character enter" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bG" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#8b7355"/>
+            <stop offset="100%" style="stop-color:#6b5a4a"/>
+          </linearGradient>
+          <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#9d8b7e"/>
+            <stop offset="100%" style="stop-color:#7a6a5a"/>
+          </linearGradient>
+          <linearGradient id="wG" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#8b7355;stop-opacity:.85"/>
+            <stop offset="100%" style="stop-color:#6b5a4a;stop-opacity:.85"/>
+          </linearGradient>
+          <filter id="sf">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="2.5"/>
+            <feOffset dy="3" result="o"/>
+            <feComponentTransfer><feFuncA type="linear" slope=".25"/></feComponentTransfer>
+            <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <ellipse cx="100" cy="112" rx="60" ry="72" fill="url(#bG)" filter="url(#sf)"/>
+        <circle cx="100" cy="62" r="50" fill="url(#hG)" filter="url(#sf)"/>
+        <ellipse cx="71" cy="16" rx="17" ry="24" fill="#6b5a4a" filter="url(#sf)"/>
+        <ellipse cx="129" cy="16" rx="17" ry="24" fill="#6b5a4a" filter="url(#sf)"/>
+        <circle cx="80" cy="57" r="21" fill="white" filter="url(#sf)"/>
+        <circle cx="120" cy="57" r="21" fill="white" filter="url(#sf)"/>
+        <circle cx="80" cy="57" r="13" fill="#2c3e50"/>
+        <circle cx="120" cy="57" r="13" fill="#2c3e50"/>
+        <circle cx="82" cy="55" r="5" fill="white"/>
+        <circle cx="122" cy="55" r="5" fill="white"/>
+        <path d="M100 72 L105 85 L95 85 Z" fill="#d4a574"/>
+        <ellipse cx="50" cy="112" rx="24" ry="48" fill="url(#wG)" filter="url(#sf)"
+          style="transform-origin:64px 112px;animation:wingFlap 1.6s ease-in-out infinite"/>
+        <ellipse cx="150" cy="112" rx="24" ry="48" fill="url(#wG)" filter="url(#sf)"
+          style="transform-origin:136px 112px;animation:wingFlap 1.6s ease-in-out infinite .2s"/>
+        <circle cx="86" cy="180" r="8" fill="#d4a574"/>
+        <circle cx="114" cy="180" r="8" fill="#d4a574"/>
+      </svg>
+
+      <h1>Смотри и запомни</h1>
+      <p class="description">Здравствуй! Я сова Мудрая Кнопка 🦉<br>
+        Я покажу тебе картинки — смотри внимательно и запоминай.<br>
+        Потом найди их среди других. Чем дольше смотришь — тем лучше запомнишь!</p>
+
+      <div class="controls">
+        <button class="button" onclick="showLevels()">Выбрать уровень →</button>
+        <button class="icon-btn" onclick="openModal('cheatsheet')" title="Шпаргалка для взрослого">📖</button>
+      </div>
+    </div>
+
+    <!-- ─── ЭКРАН 1.5: Выбор уровня ─── -->
+    <div class="screen" id="screenLevels">
+      <h1>Выбери уровень</h1>
+      <p class="description">Пройди уровень 5 раз, чтобы открыть следующий. Картинки каждый раз новые — играй сколько хочешь!</p>
+
+      <div class="level-grid" id="levelGrid"></div>
+
+      <div class="controls">
+        <button class="button ghost" onclick="finishGame()">Закончить игру</button>
+      </div>
+    </div>
+
+    <!-- ─── ЭКРАН 2: Игра ─── -->
+    <div class="screen" id="screen2">
+      <h2 id="roundTitle">🌱 Лёгкий</h2>
+      <div class="round-info" id="roundDesc">Запомни 3 картинки</div>
+
+      <svg class="character" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="100" cy="112" rx="60" ry="72" fill="url(#bG)" filter="url(#sf)"/>
+        <circle cx="100" cy="62" r="50" fill="url(#hG)" filter="url(#sf)"/>
+        <ellipse cx="71" cy="16" rx="17" ry="24" fill="#6b5a4a" filter="url(#sf)"/>
+        <ellipse cx="129" cy="16" rx="17" ry="24" fill="#6b5a4a" filter="url(#sf)"/>
+        <circle cx="80" cy="57" r="21" fill="white" filter="url(#sf)"/>
+        <circle cx="120" cy="57" r="21" fill="white" filter="url(#sf)"/>
+        <circle cx="80" cy="57" r="13" fill="#2c3e50"/>
+        <circle cx="120" cy="57" r="13" fill="#2c3e50"/>
+        <circle cx="82" cy="55" r="5" fill="white"/>
+        <circle cx="122" cy="55" r="5" fill="white"/>
+        <path d="M100 72 L105 85 L95 85 Z" fill="#d4a574"/>
+        <circle cx="86" cy="180" r="8" fill="#d4a574"/>
+        <circle cx="114" cy="180" r="8" fill="#d4a574"/>
+      </svg>
+
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="task-progress" id="taskProgress"></div>
+
+      <div id="memoryDisplay" class="memory-grid"></div>
+      <div class="countdown" id="countdown"></div>
+      <div id="memoryGrid" class="memory-grid" style="display:none"></div>
+
+      <div class="hint" id="hint"></div>
+
+      <div class="controls" id="playAgainControls" style="display:none">
+        <button class="button" id="againBtn" onclick="playAgainSameLevel()">Играть ещё раз 🔁</button>
+        <button class="button ghost" onclick="showLevels()">Сменить уровень</button>
+      </div>
+      <button class="link-btn" onclick="finishGame()">Закончить игру</button>
+    </div>
+
+    <!-- ─── ЭКРАН 3: Финал ─── -->
+    <div class="screen" id="screen3">
+      <h1>Отличная память! 🎉</h1>
+
+      <svg class="character" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="100" cy="112" rx="60" ry="72" fill="url(#bG)" filter="url(#sf)"/>
+        <circle cx="100" cy="62" r="50" fill="url(#hG)" filter="url(#sf)"/>
+        <ellipse cx="71" cy="16" rx="17" ry="24" fill="#6b5a4a" filter="url(#sf)"/>
+        <ellipse cx="129" cy="16" rx="17" ry="24" fill="#6b5a4a" filter="url(#sf)"/>
+        <circle cx="80" cy="57" r="21" fill="white" filter="url(#sf)"/>
+        <circle cx="120" cy="57" r="21" fill="white" filter="url(#sf)"/>
+        <circle cx="80" cy="57" r="13" fill="#2c3e50"/>
+        <circle cx="120" cy="57" r="13" fill="#2c3e50"/>
+        <circle cx="82" cy="55" r="5" fill="white"/>
+        <circle cx="122" cy="55" r="5" fill="white"/>
+        <path d="M100 72 L105 85 L95 85 Z" fill="#d4a574"/>
+        <circle cx="86" cy="180" r="8" fill="#d4a574"/>
+        <circle cx="114" cy="180" r="8" fill="#d4a574"/>
+      </svg>
+
+      <div class="description">
+        <p style="margin-bottom:.8em">Попробуй дома: посмотри на стол 10 секунд, закрой глаза и назови всё, что видел!</p>
+        <p style="font-style:italic;color:#d4a574">Зрительная память помогает учиться в школе, запоминать лица и не терять важные вещи. 🧠</p>
+      </div>
+
+      <div class="controls">
+        <button class="button" onclick="showLevels()">Играть снова! →</button>
+        <button class="icon-btn" onclick="openMetrics()" title="Метрики">📊</button>
+      </div>
+    </div>
+
+    <div class="hidden-metrics" onclick="openMetrics()">📊</div>
+  </div>
+
+  <script>
+    /* ══════════════════════════════════════════════
+       УРОВНИ — тайминги заданы явно для каждого уровня
+       (по запросу: 6 / 8 / 8 / 10 секунд)
+    ══════════════════════════════════════════════ */
+    const LEVELS = [
+      { id:1, emoji:'🌱', name:'Лёгкий',  nMin:3, nMax:3, grid:6,  cols:3, time:6000,
+        desc:'3 картинки среди 6, 6 секунд' },
+      { id:2, emoji:'🌿', name:'Средний', nMin:3, nMax:3, grid:8,  cols:4, time:8000,
+        desc:'3 картинки среди 8, 8 секунд' },
+      { id:3, emoji:'🌳', name:'Сложнее', nMin:3, nMax:4, grid:9,  cols:3, time:8000,
+        desc:'3–4 картинки среди 9, 8 секунд' },
+      { id:4, emoji:'🏆', name:'Сложный', nMin:4, nMax:5, grid:12, cols:4, time:10000,
+        desc:'4–5 картинок среди 12, 10 секунд' },
+    ];
+
+    const EMOJIS = {
+      apple:'🍎', banana:'🍌', ball:'⚽', star:'⭐', heart:'❤️',
+      flower:'🌸', fish:'🐠', cat:'🐱', dog:'🐶', tree:'🌳',
+      house:'🏠', cloud:'☁️', sun:'☀️', snowflake:'❄️', butterfly:'🦋',
+      moon:'🌙', rocket:'🚀', bulb:'💡', key:'🗝️', book:'📚', crown:'👑',
+    };
+    const KEYS = Object.keys(EMOJIS);
+
+    // Сколько задачек нужно успешно пройти на уровне, чтобы открыть следующий
+    const TASKS_TO_UNLOCK = 5;
+
+    /* ── Состояние ── */
+    const G = {
+      levelIdx: 0,
+      correct: new Set(),
+      chosen:  new Set(),
+      gridKeys: [],
+      metrics: { ok:0, err:0, byLevel: {} },
+      progress: {},   // levelId -> число успешно пройденных задачек (0..TASKS_TO_UNLOCK)
+      sound: null,
+      muted: false,
+      cdTimer: null,
+      phaseTimer: null,
+    };
+    LEVELS.forEach(l => { G.metrics.byLevel[l.id] = 0; G.progress[l.id] = 0; });
+
+    function isLevelUnlocked(idx) {
+      if (idx === 0) return true;
+      const prev = LEVELS[idx - 1];
+      return G.progress[prev.id] >= TASKS_TO_UNLOCK;
+    }
+
+    function randInt(min, max) { return min + Math.floor(Math.random() * (max - min + 1)); }
+
+    /* ── Звук ── */
+    function ensureAudio() {
+      if (!G.sound) G.sound = new (window.AudioContext||window.webkitAudioContext)();
+      if (G.sound.state==='suspended') G.sound.resume();
+    }
+
+    function beep(freq, ms, vol=0.18) {
+      if (G.muted || !G.sound) return;
+      try {
+        const t = G.sound.currentTime;
+        const o = G.sound.createOscillator();
+        const g = G.sound.createGain();
+        o.connect(g); g.connect(G.sound.destination);
+        o.type = 'sine';
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(vol, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + ms/1000);
+        o.start(t); o.stop(t + ms/1000);
+      } catch(e){}
+    }
+
+    /* ── Экраны ── */
+    function show(id) {
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    /* Сбрасывает все активные таймеры показа/отсчёта — вызывается перед
+       любым переходом с экрана игры, чтобы не осталось "зависших" таймеров */
+    function clearPhaseTimers() {
+      clearInterval(G.cdTimer);
+      clearTimeout(G.phaseTimer);
+      G.cdTimer = null;
+      G.phaseTimer = null;
+      document.getElementById('countdown').textContent = '';
+    }
+
+    /* ── Экран выбора уровня ── */
+    function buildLevelGrid() {
+      const grid = document.getElementById('levelGrid');
+      grid.innerHTML = '';
+      LEVELS.forEach((L, idx) => {
+        const unlocked = isLevelUnlocked(idx);
+        const done = G.progress[L.id] >= TASKS_TO_UNLOCK;
+        const card = document.createElement('div');
+        card.className = 'level-card' + (unlocked ? '' : ' locked');
+
+        let extra;
+        if (!unlocked) {
+          const prev = LEVELS[idx - 1];
+          extra = `<span class="lv-desc">🔒 Пройди «${prev.name}» ${TASKS_TO_UNLOCK} раз</span>`;
+        } else if (done) {
+          extra = `<span class="lv-desc">${L.desc}</span><span class="lv-done">Пройден ⭐</span>`;
+        } else {
+          const dots = Array.from({length: TASKS_TO_UNLOCK}, (_, i) =>
+            `<span class="lv-dot${i < G.progress[L.id] ? ' filled' : ''}"></span>`).join('');
+          extra = `<span class="lv-desc">${L.desc}</span><div class="lv-dots">${dots}</div>`;
+        }
+
+        card.innerHTML = `<span class="lv-emoji">${L.emoji}</span>
+          <span class="lv-name">${L.name}</span>${extra}`;
+
+        if (unlocked) card.onclick = () => selectLevel(idx);
+        grid.appendChild(card);
+      });
+    }
+    buildLevelGrid();
+
+    function showLevels() {
+      ensureAudio();
+      clearPhaseTimers();
+      buildLevelGrid();
+      show('screenLevels');
+    }
+
+    function selectLevel(idx) {
+      if (!isLevelUnlocked(idx)) return; // защита: заблокированный уровень не запускается
+      G.levelIdx = idx;
+      show('screen2');
+      startLevelRound();
+    }
+
+    /* ── Прогресс (сколько задачек пройдено на уровне из TASKS_TO_UNLOCK) ── */
+    function renderTaskProgress() {
+      const L = LEVELS[G.levelIdx];
+      const p = Math.min(G.progress[L.id], TASKS_TO_UNLOCK);
+      document.getElementById('progressFill').style.width = (p / TASKS_TO_UNLOCK * 100) + '%';
+
+      const nextL = LEVELS[G.levelIdx + 1];
+      let label;
+      if (p >= TASKS_TO_UNLOCK && nextL) {
+        label = `Уровень пройден ⭐ Открыт «${nextL.name}»`;
+      } else if (p >= TASKS_TO_UNLOCK) {
+        label = 'Уровень пройден ⭐ Это последний уровень!';
+      } else {
+        label = `Задачка ${p} из ${TASKS_TO_UNLOCK}` + (nextL ? ` до уровня «${nextL.name}»` : '');
+      }
+      document.getElementById('taskProgress').textContent = label;
+    }
+
+    /* ── Раунд текущего уровня (каждый раз новые картинки) ── */
+    function startLevelRound() {
+      const L = LEVELS[G.levelIdx];
+      const n = randInt(L.nMin, L.nMax);
+      const showTime = L.time;
+
+      document.getElementById('roundTitle').textContent = `${L.emoji} ${L.name}`;
+      document.getElementById('roundDesc').textContent =
+        `Запомни ${n} картинк${n===1?'у':n<5?'и':'ок'}`;
+      document.getElementById('playAgainControls').style.display = 'none';
+      renderTaskProgress();
+
+      G.correct.clear(); G.chosen.clear();
+
+      const shuffled = [...KEYS].sort(()=>Math.random()-.5);
+      const targets  = shuffled.slice(0, n);
+      targets.forEach(k => G.correct.add(k));
+
+      const dist = shuffled.filter(k=>!targets.includes(k));
+      const grid = [...targets];
+      for (let i=0; grid.length < L.grid; i++) grid.push(dist[i]);
+      grid.sort(()=>Math.random()-.5);
+      G.gridKeys = grid;
+
+      displayPhase(targets, showTime, L.cols);
+    }
+
+    /* ── Фаза показа ── */
+    function displayPhase(targets, ms, cols) {
+      const disp = document.getElementById('memoryDisplay');
+      const grid = document.getElementById('memoryGrid');
+      const cd   = document.getElementById('countdown');
+
+      // на случай, если предыдущая фаза не была штатно завершена —
+      // гарантированно снимаем старые таймеры перед запуском новых
+      clearPhaseTimers();
+
+      disp.innerHTML = ''; grid.innerHTML = '';
+      disp.style.display = 'grid';
+      grid.style.display  = 'none';
+      document.getElementById('hint').textContent = '👀 Смотри внимательно!';
+      const totalSec = Math.round(ms / 1000);
+      cd.textContent = totalSec;
+
+      targets.forEach(k => {
+        const d = document.createElement('div');
+        d.className = 'memory-item';
+        d.innerHTML = `<span>${EMOJIS[k]}</span>`;
+        disp.appendChild(d);
+        beep(520, 60, 0.1);
+      });
+
+      // Обратный отсчёт: ровно totalSec тиков по 1000 мс,
+      // синхронизирован с моментом смены фазы через setTimeout(ms) ниже
+      let rem = totalSec;
+      G.cdTimer = setInterval(() => {
+        rem--;
+        cd.textContent = rem > 0 ? rem : '';
+        if (rem <= 0) { clearInterval(G.cdTimer); G.cdTimer = null; }
+      }, 1000);
+
+      G.phaseTimer = setTimeout(() => {
+        clearInterval(G.cdTimer);
+        G.cdTimer = null;
+        G.phaseTimer = null;
+        cd.textContent = '';
+        disp.style.display = 'none';
+        answerPhase(cols);
+      }, ms);
+    }
+
+    /* ── Фаза ответа ── */
+    function answerPhase(cols) {
+      const grid = document.getElementById('memoryGrid');
+      grid.innerHTML = '';
+      grid.style.setProperty('--gcols', cols);
+
+      G.gridKeys.forEach(k => {
+        const d = document.createElement('div');
+        d.className = 'memory-item';
+        d.innerHTML = `<span>${EMOJIS[k]}</span>`;
+        d.onclick = () => tap(d, k);
+        grid.appendChild(d);
+      });
+
+      grid.style.display = 'grid';
+      document.getElementById('hint').textContent = 'Найди все картинки, которые ты видел!';
+    }
+
+    /* ── Нажатие ── */
+    function tap(el, k) {
+      ensureAudio();
+
+      if (G.chosen.has(k)) {
+        G.chosen.delete(k);
+        el.classList.remove('correct');
+        return;
+      }
+
+      if (G.correct.has(k)) {
+        G.chosen.add(k);
+        el.classList.add('correct');
+        beep(880, 140, 0.15);
+        G.metrics.ok++;
+
+        if (G.chosen.size === G.correct.size) roundDone();
+      } else {
+        el.classList.add('wrong');
+        beep(260, 220, 0.12);
+        G.metrics.err++;
+        G.metrics.byLevel[LEVELS[G.levelIdx].id]++;
+        document.getElementById('hint').textContent = '🤔 Ещё раз подумай…';
+        setTimeout(()=>el.classList.remove('wrong'), 650);
+      }
+    }
+
+    /* ── Раунд завершён — уровень бесконечный: предлагаем повтор ── */
+    function roundDone() {
+      const L = LEVELS[G.levelIdx];
+      const wasFull = G.progress[L.id] >= TASKS_TO_UNLOCK;
+      if (!wasFull) G.progress[L.id]++;
+      const justUnlocked = !wasFull && G.progress[L.id] >= TASKS_TO_UNLOCK && LEVELS[G.levelIdx + 1];
+
+      document.getElementById('hint').innerHTML = justUnlocked
+        ? `<span class="success-message">✅ Молодец! 🎉 Открыт уровень «${LEVELS[G.levelIdx+1].name}»!</span>`
+        : '<span class="success-message">✅ Молодец! Всё нашёл!</span>';
+
+      renderTaskProgress();
+
+      beep(880, 180, 0.15);
+      setTimeout(()=>beep(1100, 200, 0.13), 240);
+      if (justUnlocked) setTimeout(()=>beep(1320, 260, 0.13), 480);
+
+      setTimeout(() => {
+        document.getElementById('playAgainControls').style.display = 'flex';
+      }, justUnlocked ? 1800 : 1300);
+    }
+
+    function playAgainSameLevel() {
+      document.getElementById('memoryDisplay').style.display = 'none';
+      document.getElementById('memoryGrid').style.display = 'none';
+      document.getElementById('hint').textContent = '';
+      startLevelRound();
+    }
+
+    /* ── Спокойное завершение ── */
+    function finishGame() {
+      clearPhaseTimers();
+      show('screen3');
+      ensureAudio();
+      beep(880,180,.14); setTimeout(()=>beep(1100,200,.13),220);
+      setTimeout(()=>beep(1320,260,.12),440);
+    }
+
+    /* ── Модалки ── */
+    function openModal(id) {
+      document.getElementById('modalOverlay').classList.add('active');
+      document.getElementById(id).classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById('modalOverlay').classList.remove('active');
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function openMetrics() {
+      const byL  = G.metrics.byLevel;
+      const ids  = Object.keys(byL);
+      const maxE = Math.max(...ids.map(id=>byL[id]));
+      const hardId = ids.find(id => byL[id] === maxE);
+      const hardLevel = LEVELS.find(l => l.id == hardId);
+      const hard = maxE > 0
+        ? `${hardLevel.emoji} ${hardLevel.name} (${maxE} ошиб.)`
+        : '— нет ошибок 🎉';
+
+      document.getElementById('mCorrect').textContent = G.metrics.ok;
+      document.getElementById('mWrong').textContent   = G.metrics.err;
+      document.getElementById('mHard').textContent    = hard;
+      document.getElementById('mErrors').textContent  =
+        LEVELS.map(l => `${l.emoji}${l.name}: ${byL[l.id]}`).join(' · ');
+
+      openModal('metricsPan');
+    }
+
+    document.getElementById('modalOverlay').onclick = () => {
+      ['cheatsheet','metricsPan'].forEach(id=>{
+        document.getElementById('modalOverlay').classList.remove('active');
+        document.getElementById(id).classList.remove('active');
+      });
+    };
+
+    document.addEventListener('keydown', e => {
+      if (e.key==='m'||e.key==='M') G.muted = !G.muted;
+    });
+  </script>
+</body>
+</html>
